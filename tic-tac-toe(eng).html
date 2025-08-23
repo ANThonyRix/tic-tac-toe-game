@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic Tac Toe</title>
+    <title>Molondak vs AI</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,6 +28,17 @@
             margin-bottom: 20px;
         }
         
+        .difficulty-selector {
+            margin: 20px 0;
+        }
+        
+        .difficulty-selector select {
+            padding: 8px 12px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        
         .game-board {
             display: grid;
             grid-template-columns: repeat(3, 100px);
@@ -42,13 +53,15 @@
         .cell {
             background-color: white;
             border: none;
-            font-size: 36px;
-            font-weight: bold;
             cursor: pointer;
             transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px;
         }
         
-        .cell:hover {
+        .cell:hover:not(:disabled) {
             background-color: #f0f0f0;
         }
         
@@ -56,10 +69,20 @@
             cursor: not-allowed;
         }
         
+        .cell img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+        
         .status {
             font-size: 18px;
             margin: 20px 0;
             font-weight: bold;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .current-player {
@@ -72,6 +95,10 @@
         
         .draw {
             color: #ffc107;
+        }
+        
+        .ai-thinking {
+            color: #6c757d;
         }
         
         .reset-btn {
@@ -102,28 +129,71 @@
             border-radius: 5px;
             min-width: 80px;
         }
+        
+        .player-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .player-indicator img {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+        }
+        
+        .thinking-animation {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
     <div class="game-container">
-        <h1>Tic Tac Toe</h1>
+        <h1>Molondak vs AI</h1>
+        
+        <div class="difficulty-selector">
+            <label for="difficulty">AI Difficulty: </label>
+            <select id="difficulty">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard" selected>Hard (Unbeatable)</option>
+            </select>
+        </div>
         
         <div class="score">
             <div class="score-item">
-                <div>X Wins</div>
-                <div id="score-x">0</div>
+                <div class="player-indicator">
+                    <img src="https://i.postimg.cc/nVYrj9tj/molandak.png" alt="Player">
+                    <span>Player</span>
+                </div>
+                <div id="score-player">0</div>
             </div>
             <div class="score-item">
                 <div>Draws</div>
                 <div id="score-draw">0</div>
             </div>
             <div class="score-item">
-                <div>O Wins</div>
-                <div id="score-o">0</div>
+                <div class="player-indicator">
+                    <img src="https://i.postimg.cc/x8t9sH06/chog.png" alt="AI">
+                    <span>AI</span>
+                </div>
+                <div id="score-ai">0</div>
             </div>
         </div>
         
-        <div class="status" id="status">Current player: <span class="current-player">X</span></div>
+        <div class="status" id="status">
+            Your turn! 
+            <span class="current-player player-indicator">
+                <img src="https://i.postimg.cc/nVYrj9tj/molandak.png" alt="Player" id="current-player-img">
+            </span>
+        </div>
         
         <div class="game-board" id="gameBoard">
             <button class="cell" data-index="0"></button>
@@ -143,59 +213,69 @@
 
     <script>
         // Game variables
-        let currentPlayer = 'X';
+        const PLAYER = 'X';
+        const AI = 'O';
+        let currentPlayer = PLAYER;
         let gameBoard = ['', '', '', '', '', '', '', '', ''];
         let gameActive = true;
+        let aiDifficulty = 'hard';
+        
+        // Image URLs
+        const playerImages = {
+            'X': 'https://i.postimg.cc/nVYrj9tj/molandak.png',
+            'O': 'https://i.postimg.cc/x8t9sH06/chog.png'
+        };
         
         // Score counters
         let score = {
-            x: 0,
-            o: 0,
+            player: 0,
+            ai: 0,
             draw: 0
         };
         
         // Winning combinations
         const winningConditions = [
-            [0, 1, 2],
-            [3, 4, 5],
-            [6, 7, 8],
-            [0, 3, 6],
-            [1, 4, 7],
-            [2, 5, 8],
-            [0, 4, 8],
-            [2, 4, 6]
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+            [0, 4, 8], [2, 4, 6] // diagonals
         ];
         
         // DOM elements
         const cells = document.querySelectorAll('.cell');
         const statusElement = document.getElementById('status');
-        const scoreXElement = document.getElementById('score-x');
-        const scoreOElement = document.getElementById('score-o');
+        const scorePlayerElement = document.getElementById('score-player');
+        const scoreAIElement = document.getElementById('score-ai');
         const scoreDrawElement = document.getElementById('score-draw');
+        const currentPlayerImg = document.getElementById('current-player-img');
+        const difficultySelect = document.getElementById('difficulty');
         
         // Game initialization
         function initGame() {
             cells.forEach((cell, index) => {
-                cell.addEventListener('click', () => handleCellClick(index));
+                cell.addEventListener('click', () => handlePlayerMove(index));
             });
+            
+            difficultySelect.addEventListener('change', (e) => {
+                aiDifficulty = e.target.value;
+                resetGame();
+            });
+            
             updateStatus();
             loadScore();
         }
         
-        // Handle cell click
-        function handleCellClick(index) {
-            if (gameBoard[index] !== '' || !gameActive) {
+        // Handle player move
+        function handlePlayerMove(index) {
+            if (gameBoard[index] !== '' || !gameActive || currentPlayer !== PLAYER) {
                 return;
             }
             
-            gameBoard[index] = currentPlayer;
-            cells[index].textContent = currentPlayer;
-            cells[index].style.color = currentPlayer === 'X' ? '#007bff' : '#dc3545';
+            makeMove(index, PLAYER);
             
-            if (checkWinner()) {
+            if (checkWinner(PLAYER)) {
                 gameActive = false;
-                statusElement.innerHTML = `<span class="winner">Player ${currentPlayer} wins!</span>`;
-                updateScore(currentPlayer);
+                statusElement.innerHTML = `<span class="winner">You win! 🎉</span>`;
+                updateScore('player');
                 disableAllCells();
             } else if (checkDraw()) {
                 gameActive = false;
@@ -203,18 +283,132 @@
                 updateScore('draw');
                 disableAllCells();
             } else {
-                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                currentPlayer = AI;
                 updateStatus();
+                // AI move with delay for better UX
+                setTimeout(makeAIMove, 500);
             }
         }
         
-        // Check winner
-        function checkWinner() {
+        // Make a move on the board
+        function makeMove(index, player) {
+            gameBoard[index] = player;
+            const img = document.createElement('img');
+            img.src = playerImages[player];
+            img.alt = player;
+            cells[index].appendChild(img);
+        }
+        
+        // AI move logic
+        function makeAIMove() {
+            if (!gameActive) return;
+            
+            let move;
+            
+            switch(aiDifficulty) {
+                case 'easy':
+                    move = getRandomMove();
+                    break;
+                case 'medium':
+                    move = Math.random() < 0.7 ? getBestMove() : getRandomMove();
+                    break;
+                case 'hard':
+                default:
+                    move = getBestMove();
+                    break;
+            }
+            
+            if (move !== -1) {
+                makeMove(move, AI);
+                
+                if (checkWinner(AI)) {
+                    gameActive = false;
+                    statusElement.innerHTML = `<span class="winner">AI wins! 🤖</span>`;
+                    updateScore('ai');
+                    disableAllCells();
+                } else if (checkDraw()) {
+                    gameActive = false;
+                    statusElement.innerHTML = '<span class="draw">It\'s a draw!</span>';
+                    updateScore('draw');
+                    disableAllCells();
+                } else {
+                    currentPlayer = PLAYER;
+                    updateStatus();
+                }
+            }
+        }
+        
+        // Get random available move
+        function getRandomMove() {
+            const availableMoves = [];
+            for (let i = 0; i < 9; i++) {
+                if (gameBoard[i] === '') {
+                    availableMoves.push(i);
+                }
+            }
+            return availableMoves.length > 0 ? 
+                   availableMoves[Math.floor(Math.random() * availableMoves.length)] : -1;
+        }
+        
+        // Minimax algorithm for optimal AI moves
+        function getBestMove() {
+            let bestScore = -Infinity;
+            let bestMove = -1;
+            
+            for (let i = 0; i < 9; i++) {
+                if (gameBoard[i] === '') {
+                    gameBoard[i] = AI;
+                    let score = minimax(gameBoard, 0, false);
+                    gameBoard[i] = '';
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = i;
+                    }
+                }
+            }
+            
+            return bestMove;
+        }
+        
+        // Minimax algorithm implementation
+        function minimax(board, depth, isMaximizing) {
+            if (checkWinner(AI)) return 10 - depth;
+            if (checkWinner(PLAYER)) return depth - 10;
+            if (checkDraw()) return 0;
+            
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = AI;
+                        let score = minimax(board, depth + 1, false);
+                        board[i] = '';
+                        bestScore = Math.max(score, bestScore);
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = PLAYER;
+                        let score = minimax(board, depth + 1, true);
+                        board[i] = '';
+                        bestScore = Math.min(score, bestScore);
+                    }
+                }
+                return bestScore;
+            }
+        }
+        
+        // Check winner for specific player
+        function checkWinner(player) {
             return winningConditions.some(condition => {
                 const [a, b, c] = condition;
-                return gameBoard[a] && 
-                       gameBoard[a] === gameBoard[b] && 
-                       gameBoard[a] === gameBoard[c];
+                return gameBoard[a] === player && 
+                       gameBoard[b] === player && 
+                       gameBoard[c] === player;
             });
         }
         
@@ -226,7 +420,11 @@
         // Update status
         function updateStatus() {
             if (gameActive) {
-                statusElement.innerHTML = `Current player: <span class="current-player">${currentPlayer}</span>`;
+                if (currentPlayer === PLAYER) {
+                    statusElement.innerHTML = `Your turn! <span class="current-player player-indicator"><img src="${playerImages[PLAYER]}" alt="Player" style="width: 30px; height: 30px;"></span>`;
+                } else {
+                    statusElement.innerHTML = `<span class="ai-thinking thinking-animation">AI is thinking... 🤔</span>`;
+                }
             }
         }
         
@@ -246,13 +444,12 @@
         
         // Reset game
         function resetGame() {
-            currentPlayer = 'X';
+            currentPlayer = PLAYER;
             gameBoard = ['', '', '', '', '', '', '', '', ''];
             gameActive = true;
             
             cells.forEach(cell => {
-                cell.textContent = '';
-                cell.style.color = '';
+                cell.innerHTML = '';
             });
             
             enableAllCells();
@@ -261,16 +458,16 @@
         
         // Update score
         function updateScore(winner) {
-            if (winner === 'X') {
-                score.x++;
-            } else if (winner === 'O') {
-                score.o++;
+            if (winner === 'player') {
+                score.player++;
+            } else if (winner === 'ai') {
+                score.ai++;
             } else {
                 score.draw++;
             }
             
-            scoreXElement.textContent = score.x;
-            scoreOElement.textContent = score.o;
+            scorePlayerElement.textContent = score.player;
+            scoreAIElement.textContent = score.ai;
             scoreDrawElement.textContent = score.draw;
             
             saveScore();
@@ -278,25 +475,25 @@
         
         // Reset score
         function resetScore() {
-            score = { x: 0, o: 0, draw: 0 };
-            scoreXElement.textContent = '0';
-            scoreOElement.textContent = '0';
+            score = { player: 0, ai: 0, draw: 0 };
+            scorePlayerElement.textContent = '0';
+            scoreAIElement.textContent = '0';
             scoreDrawElement.textContent = '0';
             saveScore();
         }
         
         // Save score to localStorage
         function saveScore() {
-            localStorage.setItem('ticTacToeScore', JSON.stringify(score));
+            localStorage.setItem('ticTacToeAIScore', JSON.stringify(score));
         }
         
         // Load score from localStorage
         function loadScore() {
-            const savedScore = localStorage.getItem('ticTacToeScore');
+            const savedScore = localStorage.getItem('ticTacToeAIScore');
             if (savedScore) {
                 score = JSON.parse(savedScore);
-                scoreXElement.textContent = score.x;
-                scoreOElement.textContent = score.o;
+                scorePlayerElement.textContent = score.player;
+                scoreAIElement.textContent = score.ai;
                 scoreDrawElement.textContent = score.draw;
             }
         }

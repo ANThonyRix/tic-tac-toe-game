@@ -23,6 +23,64 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         
+        .start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        .start-screen img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+        }
+        
+        .start-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .start-btn:hover {
+            background-color: #218838;
+        }
+        
+        .game-screen {
+            display: none;
+        }
+        
+        .result-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        .result-text {
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .you-won {
+            color: #28a745;
+        }
+        
+        .you-lost {
+            color: #dc3545;
+        }
+        
+        .draw {
+            color: #ffc107;
+        }
+        
         h1 {
             color: #333;
             margin-bottom: 20px;
@@ -43,11 +101,12 @@
             display: grid;
             grid-template-columns: repeat(3, 100px);
             grid-template-rows: repeat(3, 100px);
-            gap: 5px;
+            gap: 2px;
             margin: 20px auto;
             background-color: #333;
-            padding: 5px;
+            padding: 2px;
             border-radius: 5px;
+            width: fit-content;
         }
         
         .cell {
@@ -59,6 +118,9 @@
             align-items: center;
             justify-content: center;
             padding: 5px;
+            width: 100px;
+            height: 100px;
+            box-sizing: border-box;
         }
         
         .cell:hover:not(:disabled) {
@@ -91,10 +153,6 @@
         
         .winner {
             color: #28a745;
-        }
-        
-        .draw {
-            color: #ffc107;
         }
         
         .ai-thinking {
@@ -152,63 +210,116 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
+        
+        .play-again-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin: 0 10px;
+        }
+        
+        .play-again-btn:hover {
+            background-color: #218838;
+        }
+        
+        .menu-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin: 0 10px;
+        }
+        
+        .menu-btn:hover {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
     <div class="game-container">
-        <h1>Molondak vs AI</h1>
-        
-        <div class="difficulty-selector">
-            <label for="difficulty">AI Difficulty: </label>
-            <select id="difficulty">
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard" selected>Hard (Unbeatable)</option>
-            </select>
+        <!-- Start Screen -->
+        <div class="start-screen" id="startScreen">
+            <img src="https://i.postimg.cc/nVYrj9tj/molandak.png" alt="Molondak">
+            <button class="start-btn" onclick="startGame()">START</button>
         </div>
         
-        <div class="score">
-            <div class="score-item">
-                <div class="player-indicator">
-                    <img src="https://i.postimg.cc/nVYrj9tj/molandak.png" alt="Player">
-                    <span>Player</span>
+        <!-- Game Screen -->
+        <div class="game-screen" id="gameScreen">
+            <h1>Molondak vs AI</h1>
+            
+            <div class="difficulty-selector">
+                <label for="difficulty">AI Difficulty: </label>
+                <select id="difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard" selected>Hard (Unbeatable)</option>
+                </select>
+            </div>
+            
+            <div class="score">
+                <div class="score-item">
+                    <div class="player-indicator">
+                        <img src="https://i.postimg.cc/nVYrj9tj/molandak.png" alt="Player">
+                        <span>Player</span>
+                    </div>
+                    <div id="score-player">0</div>
                 </div>
-                <div id="score-player">0</div>
-            </div>
-            <div class="score-item">
-                <div>Draws</div>
-                <div id="score-draw">0</div>
-            </div>
-            <div class="score-item">
-                <div class="player-indicator">
-                    <img src="https://i.postimg.cc/x8t9sH06/chog.png" alt="AI">
-                    <span>AI</span>
+                <div class="score-item">
+                    <div>Draws</div>
+                    <div id="score-draw">0</div>
                 </div>
-                <div id="score-ai">0</div>
+                <div class="score-item">
+                    <div class="player-indicator">
+                        <img src="https://i.postimg.cc/x8t9sH06/chog.png" alt="AI">
+                        <span>AI</span>
+                    </div>
+                    <div id="score-ai">0</div>
+                </div>
+            </div>
+            
+            <div class="status" id="status">
+                Your turn! 
+                <span class="current-player player-indicator">
+                    <img src="https://i.postimg.cc/nVYrj9tj/molandak.png" alt="Player" id="current-player-img">
+                </span>
+            </div>
+            
+            <div class="game-board" id="gameBoard">
+                <button class="cell" data-index="0"></button>
+                <button class="cell" data-index="1"></button>
+                <button class="cell" data-index="2"></button>
+                <button class="cell" data-index="3"></button>
+                <button class="cell" data-index="4"></button>
+                <button class="cell" data-index="5"></button>
+                <button class="cell" data-index="6"></button>
+                <button class="cell" data-index="7"></button>
+                <button class="cell" data-index="8"></button>
+            </div>
+            
+            <button class="reset-btn" onclick="resetGame()">New Game</button>
+            <button class="reset-btn" onclick="resetScore()" style="margin-left: 10px;">Reset Score</button>
+            <button class="reset-btn" onclick="goToMenu()" style="margin-left: 10px;">Menu</button>
+        </div>
+        
+        <!-- Result Screen -->
+        <div class="result-screen" id="resultScreen">
+            <div class="result-text" id="resultText"></div>
+            <div>
+                <button class="play-again-btn" onclick="playAgain()">Play Again</button>
+                <button class="menu-btn" onclick="goToMenu()">Menu</button>
             </div>
         </div>
-        
-        <div class="status" id="status">
-            Your turn! 
-            <span class="current-player player-indicator">
-                <img src="https://i.postimg.cc/nVYrj9tj/molandak.png" alt="Player" id="current-player-img">
-            </span>
-        </div>
-        
-        <div class="game-board" id="gameBoard">
-            <button class="cell" data-index="0"></button>
-            <button class="cell" data-index="1"></button>
-            <button class="cell" data-index="2"></button>
-            <button class="cell" data-index="3"></button>
-            <button class="cell" data-index="4"></button>
-            <button class="cell" data-index="5"></button>
-            <button class="cell" data-index="6"></button>
-            <button class="cell" data-index="7"></button>
-            <button class="cell" data-index="8"></button>
-        </div>
-        
-        <button class="reset-btn" onclick="resetGame()">New Game</button>
-        <button class="reset-btn" onclick="resetScore()" style="margin-left: 10px;">Reset Score</button>
     </div>
 
     <script>
@@ -248,6 +359,55 @@
         const scoreDrawElement = document.getElementById('score-draw');
         const currentPlayerImg = document.getElementById('current-player-img');
         const difficultySelect = document.getElementById('difficulty');
+        const startScreen = document.getElementById('startScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const resultScreen = document.getElementById('resultScreen');
+        const resultText = document.getElementById('resultText');
+        
+        // Screen management
+        function showStartScreen() {
+            startScreen.style.display = 'flex';
+            gameScreen.style.display = 'none';
+            resultScreen.style.display = 'none';
+        }
+        
+        function showGameScreen() {
+            startScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            resultScreen.style.display = 'none';
+        }
+        
+        function showResultScreen(result) {
+            startScreen.style.display = 'none';
+            gameScreen.style.display = 'none';
+            resultScreen.style.display = 'flex';
+            
+            resultText.className = 'result-text';
+            if (result === 'win') {
+                resultText.textContent = 'YOU WON';
+                resultText.classList.add('you-won');
+            } else if (result === 'lose') {
+                resultText.textContent = 'YOU LOST';
+                resultText.classList.add('you-lost');
+            } else {
+                resultText.textContent = 'DRAW';
+                resultText.classList.add('draw');
+            }
+        }
+        
+        function startGame() {
+            showGameScreen();
+            initGame();
+        }
+        
+        function playAgain() {
+            showGameScreen();
+            resetGame();
+        }
+        
+        function goToMenu() {
+            showStartScreen();
+        }
         
         // Game initialization
         function initGame() {
@@ -274,14 +434,14 @@
             
             if (checkWinner(PLAYER)) {
                 gameActive = false;
-                statusElement.innerHTML = `<span class="winner">You win! 🎉</span>`;
                 updateScore('player');
                 disableAllCells();
+                setTimeout(() => showResultScreen('win'), 1000);
             } else if (checkDraw()) {
                 gameActive = false;
-                statusElement.innerHTML = '<span class="draw">It\'s a draw!</span>';
                 updateScore('draw');
                 disableAllCells();
+                setTimeout(() => showResultScreen('draw'), 1000);
             } else {
                 currentPlayer = AI;
                 updateStatus();
@@ -323,14 +483,14 @@
                 
                 if (checkWinner(AI)) {
                     gameActive = false;
-                    statusElement.innerHTML = `<span class="winner">AI wins! 🤖</span>`;
                     updateScore('ai');
                     disableAllCells();
+                    setTimeout(() => showResultScreen('lose'), 1000);
                 } else if (checkDraw()) {
                     gameActive = false;
-                    statusElement.innerHTML = '<span class="draw">It\'s a draw!</span>';
                     updateScore('draw');
                     disableAllCells();
+                    setTimeout(() => showResultScreen('draw'), 1000);
                 } else {
                     currentPlayer = PLAYER;
                     updateStatus();
@@ -498,8 +658,8 @@
             }
         }
         
-        // Start game
-        initGame();
+        // Initialize the game on page load
+        showStartScreen();
     </script>
 </body>
 </html>
